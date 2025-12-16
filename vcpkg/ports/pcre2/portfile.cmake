@@ -2,13 +2,24 @@ vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO PCRE2Project/pcre2
     REF "pcre2-${VERSION}"
-    SHA512 3d0ee66e23809d3da2fe2bf4ed6e20b0fb96c293a91668935f6319e8d02e480eeef33da01e08a7436a18a1a85a116d83186b953520f394c866aad3cea73c7f5c
+    SHA512 4deef8ce95711e65fe07624e6b2aace794594adb15e8363a0279a7b947bf5c75a5858fbdc5251d0a28a7ca97ae8bba561aa5f85805d5c07d417d3e7b3b3486a4
     HEAD_REF master
     PATCHES
         pcre2-10.35_fix-uwp.patch
         no-static-suffix.patch
-        fix-cmake.patch
 )
+
+vcpkg_from_github(
+    OUT_SOURCE_PATH SLJIT_SOURCE_PATH
+    REPO zherczeg/sljit
+    REF 45f910b78c6605ebf5b53d3ec7cb00f2312fe417
+    SHA512 c05c83cc762f430c01e2aaf876aaac41a70b67ed8b91bc81102ad527c8921c5e75b41bab35bb8237dd5f53fecd7b8f31206865efffce2ea0a1aa9c87079fc643
+    HEAD_REF main
+)
+
+file(REMOVE_RECURSE "${SOURCE_PATH}/deps/sljit")
+file(MAKE_DIRECTORY "${SOURCE_PATH}/deps")
+file(RENAME "${SLJIT_SOURCE_PATH}" "${SOURCE_PATH}/deps/sljit")
 
 string(COMPARE EQUAL "${VCPKG_LIBRARY_LINKAGE}" "static" BUILD_STATIC)
 string(COMPARE EQUAL "${VCPKG_LIBRARY_LINKAGE}" "dynamic" INSTALL_PDB)
@@ -60,13 +71,17 @@ file(REMOVE_RECURSE
     "${CURRENT_PACKAGES_DIR}/debug/man"
     "${CURRENT_PACKAGES_DIR}/debug/share")
 
-if(BUILD_STATIC)
-    file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/bin" "${CURRENT_PACKAGES_DIR}/debug/bin")
-elseif(VCPKG_TARGET_IS_WINDOWS)
-    vcpkg_replace_string("${CURRENT_PACKAGES_DIR}/bin/pcre2-config" "${CURRENT_PACKAGES_DIR}" "`dirname $0`/..")
-    if(EXISTS "${CURRENT_PACKAGES_DIR}/debug/bin/pcre2-config")
-        vcpkg_replace_string("${CURRENT_PACKAGES_DIR}/debug/bin/pcre2-config" "${CURRENT_PACKAGES_DIR}" "`dirname $0`/../..")
-    endif()
+file(MAKE_DIRECTORY "${CURRENT_PACKAGES_DIR}/tools/pcre2")
+file(RENAME "${CURRENT_PACKAGES_DIR}/bin/pcre2-config" "${CURRENT_PACKAGES_DIR}/tools/pcre2/pcre2-config")
+vcpkg_replace_string("${CURRENT_PACKAGES_DIR}/tools/pcre2/pcre2-config" "${CURRENT_PACKAGES_DIR}" [[$(cd "$(dirname "$0")/../.."; pwd -P)]])
+if(NOT VCPKG_BUILD_TYPE)
+    file(MAKE_DIRECTORY "${CURRENT_PACKAGES_DIR}/tools/pcre2/debug")
+    file(RENAME "${CURRENT_PACKAGES_DIR}/debug/bin/pcre2-config" "${CURRENT_PACKAGES_DIR}/tools/pcre2/debug/pcre2-config")
+    vcpkg_replace_string("${CURRENT_PACKAGES_DIR}/tools/pcre2/debug/pcre2-config" "${CURRENT_PACKAGES_DIR}/debug" [[$(cd "$(dirname "$0")/../../../debug"; pwd -P)]])
+    vcpkg_replace_string("${CURRENT_PACKAGES_DIR}/tools/pcre2/debug/pcre2-config" [[${prefix}/include]] [[${prefix}/../include]])
+endif()
+if(VCPKG_LIBRARY_LINKAGE STREQUAL "static")
+    file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/bin" "${CURRENT_PACKAGES_DIR}/bin")
 endif()
 
 file(INSTALL "${CMAKE_CURRENT_LIST_DIR}/usage" DESTINATION "${CURRENT_PACKAGES_DIR}/share/${PORT}")

@@ -6,7 +6,7 @@ vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO AprilRobotics/apriltag
     REF v${VERSION}
-    SHA512 c6efa98b8c85702441b421955a8fd78cb99ff07e014da5593b95246a0aaf391e9959d336d8005ba193fb6dad0fb5858852918087a401e180af9c46df38a900aa
+    SHA512 f39bcac7b65e09b483f6d8579cdc89ac0162691b5b412454f975f56703b2caa1d005805360a5c8fb1433db83a3ae6a0f7cb1cad9ce5a0373787b79b9f32f983d
     HEAD_REF master
 )
 
@@ -24,7 +24,7 @@ vcpkg_copy_pdbs()
 
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/include")
 
-vcpkg_cmake_config_fixup(CONFIG_PATH share/${PORT}/cmake)
+vcpkg_cmake_config_fixup(CONFIG_PATH lib/${PORT}/cmake)
 vcpkg_fixup_pkgconfig()
 
 if (VCPKG_TARGET_IS_WINDOWS)
@@ -38,3 +38,5 @@ endif()
 
 file(INSTALL "${SOURCE_PATH}/LICENSE.md" DESTINATION "${CURRENT_PACKAGES_DIR}/share/${PORT}" RENAME copyright)
 file(INSTALL "${CMAKE_CURRENT_LIST_DIR}/usage" DESTINATION "${CURRENT_PACKAGES_DIR}/share/${PORT}")
+
+file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/lib/apriltag" "${CURRENT_PACKAGES_DIR}/lib/apriltag")

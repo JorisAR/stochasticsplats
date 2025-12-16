@@ -87,6 +87,8 @@ public:
         bool importFullSH = true;
         std::string renderMode = "ST";
         bool taa = true;
+        bool runTest = false;
+        int test_repetitions = 50;
     };
 
 protected:
@@ -116,6 +118,14 @@ protected:
     std::shared_ptr<Texture> fboColorTex;
 
     std::shared_ptr<InputBuddy> inputBuddy;
+
+    bool benchmarkActive = false;
+    int benchmarkCameraIndex = 0;
+    int benchmarkFrameIndex = 0;
+    std::vector<double> benchmarkAccumTimes;
+    std::vector<float> benchmarkResults;
+
+
 
     glm::vec2 virtualLeftStick;
     glm::vec2 virtualRightStick;

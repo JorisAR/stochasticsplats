@@ -309,6 +309,21 @@ App::ParseResult App::ParseArguments(int argc, const char* argv[])
         i++; // skip the next argument
         continue;
       }
+      if (strcmp(argv[i], "--run_test") == 0) {
+          opt.runTest = true;
+          continue;
+      }
+      if (strcmp(argv[i], "--test_repetitions") == 0 && i + 1 < argc) {
+          opt.test_repetitions = atoi(argv[i + 1]);
+          i++; // skip the next argument
+          continue;
+      }
+      if (strcmp(argv[i], "--camera_index") == 0 && i + 1 < argc) {
+          cameraIndex = atoi(argv[i + 1]);
+          i++; // skip the next argument
+          continue;
+      }
+
 
       const std::vector<std::string> validRenderModes = {
         "ST",
@@ -490,6 +505,15 @@ bool App::Init()
             return false;
         }
     }
+
+    if (opt.runTest && camerasConfig) {
+        benchmarkActive = true;
+        benchmarkCameraIndex = 0;
+        benchmarkFrameIndex = 0;
+        benchmarkAccumTimes.resize(camerasConfig->GetNumCameras(), 0.0);
+        benchmarkResults.resize(camerasConfig->GetNumCameras(), 0.0f);
+    }
+
 
     // search for vr config file
     // for example: if plyFilename is "input.ply", then search for "input_vr.json"
@@ -1027,6 +1051,14 @@ bool App::Render(float dt, const glm::ivec2& windowSize)
     int width = windowSize.x;
     int height = windowSize.y;
 
+    auto start = std::chrono::high_resolution_clock::now();
+
+    if (opt.runTest && camerasConfig) {
+        flyCam->SetCameraMat(camerasConfig->GetCameraVec()[benchmarkCameraIndex].mat);
+    }
+
+    
+
     if (opt.vrMode)
     {
         if (xrBuddy->SessionReady())
@@ -1139,6 +1171,32 @@ bool App::Render(float dt, const glm::ivec2& windowSize)
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
             Clear(windowSize, true);
             RenderDesktop(windowSize, desktopProgram, fbo->GetColorTexture()->texture, false);
+        }
+    }
+
+    if (opt.runTest && camerasConfig) {
+        auto end = std::chrono::high_resolution_clock::now();
+        double ms = std::chrono::duration<double, std::milli>(end - start).count();
+
+        benchmarkAccumTimes[benchmarkCameraIndex] += ms;
+        benchmarkFrameIndex++;
+
+        if (benchmarkFrameIndex >= opt.test_repetitions) {
+            benchmarkResults[benchmarkCameraIndex] =
+                (float)(benchmarkAccumTimes[benchmarkCameraIndex] / opt.test_repetitions);
+
+            benchmarkCameraIndex++;
+            benchmarkFrameIndex = 0;
+        }
+
+        if (benchmarkCameraIndex >= (int)camerasConfig->GetNumCameras()) {
+            // Done: print results and quit
+            for (int i = 0; i < (int)benchmarkResults.size(); i++) {
+                std::cout << "Camera " << i << ": "
+                    << benchmarkResults[i] << " ms\n";
+            }
+            std::cout << std::endl;
+            return false; // exit after test
         }
     }
 

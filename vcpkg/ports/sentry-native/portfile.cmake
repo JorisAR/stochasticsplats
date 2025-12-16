@@ -1,7 +1,7 @@
 vcpkg_download_distfile(ARCHIVE
     URLS "https://github.com/getsentry/sentry-native/releases/download/${VERSION}/sentry-native.zip"
     FILENAME "sentry-native-${VERSION}.zip"
-    SHA512 9f9fc5dbcafee310b3fb5383b4a4892e7e98094be04e21e730bfae4a0280a9c6f8610a077b24061b6051aeba8091d480e3b7ffa95f8e613d5ab1be45590953e5
+    SHA512 a81bc3b4082ea9670ff550a10240f72b02a66a42f64272e32cf2d89139162d4c2e14101d3a290612cad3f5ea195ce417343fa560d328a3ab26351401989d30da
 )
 
 vcpkg_extract_source_archive(
@@ -9,8 +9,9 @@ vcpkg_extract_source_archive(
     ARCHIVE "${ARCHIVE}"
     NO_REMOVE_ONE_LEVEL
     PATCHES
-        fix-config-cmake.patch
         fix-crashpad-wer.patch
+        fix-usage-runtime.patch
+        fix-cmake4.patch
 )
 file(REMOVE_RECURSE "${SOURCE_PATH}/external/crashpad/third_party/zlib/zlib")
 

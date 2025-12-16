@@ -18,11 +18,12 @@ vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO  "Reference-LAPACK/lapack"
     REF "v${VERSION}"
-    SHA512 fc3258b9d91a833149a68a89c5589b5113e90a8f9f41c3a73fbfccb1ecddd92d9462802c0f870f1c3dab392623452de4ef512727f5874ffdcba6a4845f78fc9a
+	SHA512 9749976d773830eb635498611c7f1247af8dece23fe8c08446243aa39bdcc20dd35fdc670345643cd1ec6828e379d5c2152009817e0b486c10fd89a06602e0fb
     HEAD_REF master
     PATCHES
         cmake-config.patch
-        lapacke.patch
+        fix_prefix.patch
+        implicit-link.patch
 )
 
 if(NOT VCPKG_TARGET_IS_WINDOWS)
@@ -35,6 +36,8 @@ if("cblas" IN_LIST FEATURES)
     if("noblas" IN_LIST FEATURES)
         message(FATAL_ERROR "Cannot built feature 'cblas' together with feature 'noblas'. cblas requires blas!")
     endif()
+else()
+	list(APPEND OPTIONS "-DBUILD_INDEX64_EXT_API=OFF")
 endif()
 
 set(USE_OPTIMIZED_BLAS OFF)
@@ -58,6 +61,7 @@ endif()
 vcpkg_cmake_configure(
     SOURCE_PATH "${SOURCE_PATH}"
     OPTIONS
+		"${OPTIONS}"
         "-DUSE_OPTIMIZED_BLAS=${USE_OPTIMIZED_BLAS}"
         "-DCMAKE_REQUIRE_FIND_PACKAGE_BLAS=${USE_OPTIMIZED_BLAS}"
         "-DCBLAS=${CBLAS}"
@@ -69,7 +73,8 @@ vcpkg_cmake_configure(
 
 vcpkg_cmake_install()
 
-vcpkg_cmake_config_fixup(PACKAGE_NAME lapack-${VERSION} CONFIG_PATH lib/cmake/lapack-${VERSION}) #Should the target path be lapack and not lapack-reference?
+# The version here is hacked due to a mistake in lapack. Should be 3.12.1 but is not
+vcpkg_cmake_config_fixup(PACKAGE_NAME ${PORT} CONFIG_PATH lib/cmake/lapack-3.12.0) #Should the target path be lapack and not lapack-reference?
 
 set(pcfile "${CURRENT_PACKAGES_DIR}/lib/pkgconfig/lapack.pc")
 if(EXISTS "${pcfile}")
@@ -82,7 +87,10 @@ if(EXISTS "${pcfile}")
     file(WRITE "${pcfile}" "prefix=${CURRENT_INSTALLED_DIR}/debug\n${_contents}")
 endif()
 
-if(NOT USE_OPTIMIZED_BLAS AND NOT (VCPKG_TARGET_IS_WINDOWS AND VCPKG_LIBRARY_LINKAGE STREQUAL "static"))
+if(NOT USE_OPTIMIZED_BLAS AND NOT (
+		VCPKG_TARGET_IS_WINDOWS AND
+		VCPKG_LIBRARY_LINKAGE STREQUAL "static" AND
+		NOT VCPKG_TARGET_IS_MINGW ))
     set(pcfile "${CURRENT_PACKAGES_DIR}/lib/pkgconfig/blas.pc")
     if(EXISTS "${pcfile}")
         file(READ "${pcfile}" _contents)
@@ -129,12 +137,6 @@ endif()
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/include")
 
 if(VCPKG_TARGET_IS_WINDOWS)
-    if(EXISTS "${CURRENT_PACKAGES_DIR}/lib/liblapack.lib")
-        file(RENAME "${CURRENT_PACKAGES_DIR}/lib/liblapack.lib" "${CURRENT_PACKAGES_DIR}/lib/lapack.lib")
-    endif()
-    if(EXISTS "${CURRENT_PACKAGES_DIR}/debug/lib/liblapack.lib")
-        file(RENAME "${CURRENT_PACKAGES_DIR}/debug/lib/liblapack.lib" "${CURRENT_PACKAGES_DIR}/debug/lib/lapack.lib")
-    endif()
     if(NOT USE_OPTIMIZED_BLAS)
         if(EXISTS "${CURRENT_PACKAGES_DIR}/lib/libblas.lib")
             file(RENAME "${CURRENT_PACKAGES_DIR}/lib/libblas.lib" "${CURRENT_PACKAGES_DIR}/lib/blas.lib")
@@ -156,4 +158,4 @@ configure_file("${CMAKE_CURRENT_LIST_DIR}/vcpkg-cmake-wrapper.cmake.in" "${CURRE
 file(COPY "${CMAKE_CURRENT_LIST_DIR}/FindLAPACK.cmake" DESTINATION "${CURRENT_PACKAGES_DIR}/share/${PORT}")
 
 file(INSTALL "${CMAKE_CURRENT_LIST_DIR}/usage" DESTINATION "${CURRENT_PACKAGES_DIR}/share/${PORT}")
-file(INSTALL "${SOURCE_PATH}/LICENSE" DESTINATION "${CURRENT_PACKAGES_DIR}/share/${PORT}" RENAME copyright)
+vcpkg_install_copyright(FILE_LIST "${SOURCE_PATH}/LICENSE")

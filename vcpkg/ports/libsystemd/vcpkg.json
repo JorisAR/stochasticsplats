@@ -1,6 +1,6 @@
 {
   "name": "libsystemd",
-  "version": "255",
+  "version": "257.8",
   "port-version": 1,
   "description": "Libsystemd",
   "homepage": "https://github.com/systemd/systemd",
@@ -16,6 +16,10 @@
     "libmount",
     "libxcrypt",
     "lz4",
+    {
+      "name": "vcpkg-get-python-packages",
+      "host": true
+    },
     {
       "name": "vcpkg-tool-meson",
       "host": true
